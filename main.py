@@ -1,5 +1,5 @@
 # dialog.py
-
+# test
 """Dialog-style application."""
 
 import sys
