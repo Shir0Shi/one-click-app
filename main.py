@@ -1,9 +1,6 @@
-<<<<<<< HEAD
-=======
-# dialog.py
-# test
+
 """Dialog-style application."""
->>>>>>> 0a9c1628f84cc0e1c5c9edbe25129c77c910e075
+
 
 import itertools
 import sys
