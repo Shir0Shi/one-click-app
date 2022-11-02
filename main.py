@@ -7,6 +7,7 @@ import sys
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import Qt, QRect
+from pywinauto.application import Application
 
 sys._excepthook = sys.excepthook
 
@@ -63,6 +64,7 @@ class Window(QDialog):
         launchButton = QPushButton("Launch all", self)
         launchButton.setGeometry(500, 430, funButtonWidth, funButtonHeight)
         launchButton.show()
+        launchButton.clicked.connect(lambda: self.launchApps())
 
         closeButton = QPushButton("Close all", self)
         closeButton.setGeometry(590, 430, funButtonWidth, funButtonHeight)
@@ -80,8 +82,6 @@ class Window(QDialog):
 
         # self.setLayout(formLayout)
 
-
-
     def _createInputField(self, formLayout):
         self.count += 1  # newId = next(iter(self.count))
         textBar = QLineEdit()
@@ -92,11 +92,26 @@ class Window(QDialog):
         button.clicked.connect(lambda: self._deleteInputField(textBar, button))
         if self.count < 20:
             formLayout.addRow(textBar, button)
+# TODO: change counter functional - when you delete fild either it should change fileds names or counter
 
     def _deleteInputField(self, textBar, button):
         textBar.deleteLater()
         button.deleteLater()
+        self.count -= 1
 
+    def launchApps(self):
+        widget = self.findChild(QLineEdit, "mainTextBar")
+
+        app_name = widget.text()
+        for i in range(1, self.count+1):
+            widget_a = self.findChild(QLineEdit, "textBar" + str(i))
+            if widget_a:
+                app_name_a = widget_a.text()
+                print(app_name_a)
+
+        # app = Application(backend="uia").start("notepad.exe")
+
+        print(app_name)
 
 if __name__ == "__main__":
     app = QApplication([])
