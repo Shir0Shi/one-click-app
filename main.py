@@ -8,7 +8,8 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import Qt, QRect
 from pywinauto.application import Application
-
+from pywinauto.keyboard import send_keys
+import re
 sys._excepthook = sys.excepthook
 
 
@@ -28,6 +29,10 @@ buttonWidth = 30
 
 funButtonWidth = 70
 funButtonHeight = 35
+
+prog_amount = 19
+
+processes_ids = []
 class Window(QDialog):
     count = 0
 
@@ -69,6 +74,7 @@ class Window(QDialog):
         closeButton = QPushButton("Close all", self)
         closeButton.setGeometry(590, 430, funButtonWidth, funButtonHeight)
         closeButton.show()
+        closeButton.clicked.connect(lambda: self.closeApps())
 
         saveButton = QPushButton("Save set", self)
         saveButton.setGeometry(680, 430, funButtonWidth, funButtonHeight)
@@ -83,35 +89,63 @@ class Window(QDialog):
         # self.setLayout(formLayout)
 
     def _createInputField(self, formLayout):
-        self.count += 1  # newId = next(iter(self.count))
-        textBar = QLineEdit()
-        button = QPushButton("-")
-        textBar.setObjectName("textBar" + str(self.count))  # self.newId
-        textBar.setFixedWidth(textInputWidth)
-        button.setFixedWidth(buttonWidth)
-        button.clicked.connect(lambda: self._deleteInputField(textBar, button))
-        if self.count < 20:
+        if self.count < prog_amount:
+            self.count += 1  # newId = next(iter(self.count))
+            textBar = QLineEdit()
+            button = QPushButton("-")
+            textBar.setObjectName("textBar" + str(self.count))  # self.newId
+            # textBar.setText(str(self.count))
+            textBar.setFixedWidth(textInputWidth)
+            button.setFixedWidth(buttonWidth)
+            button.clicked.connect(lambda: self._deleteInputField(textBar, button))
             formLayout.addRow(textBar, button)
-# TODO: change counter functional - when you delete fild either it should change fileds names or counter
 
     def _deleteInputField(self, textBar, button):
-        textBar.deleteLater()
-        button.deleteLater()
-        self.count -= 1
+        if int(re.findall(r'\d+', textBar.objectName())[0]) < self.count:
+            widget_a = self.findChild(QLineEdit, "textBar" + str(self.count))
+            temp_name = textBar.objectName()
+            textBar.deleteLater()
+            button.deleteLater()
+            widget_a.setObjectName(temp_name)
+            # widget_a.setText(temp_name)
+            self.count -= 1
+        else:
+            textBar.deleteLater()
+            button.deleteLater()
+            self.count -= 1
+
+    # app.window(title_re=".*Part of Title.*")
 
     def launchApps(self):
         widget = self.findChild(QLineEdit, "mainTextBar")
 
         app_name = widget.text()
+        try:
+            main_app = Application(backend="uia").start(app_name)
+            processes_ids.append(main_app.process_id)
+        except:
+            print("ERROR")
+            print(sys.excepthook)
         for i in range(1, self.count+1):
             widget_a = self.findChild(QLineEdit, "textBar" + str(i))
             if widget_a:
                 app_name_a = widget_a.text()
                 print(app_name_a)
-
-        # app = Application(backend="uia").start("notepad.exe")
+                try:
+                    app = Application(backend="uia").start(app_name_a)
+                    processes_ids.append(app.process_id)
+                    print(processes_ids)
+                except:
+                    print("ERROR")
+                    print(sys.excepthook)
 
         print(app_name)
+# TODO: closeButton function
+    def closeApps(self):
+        for a in processes_ids:
+            app = Application().connect(process=a)
+            app.send_keys('%{F4}')
+
 
 if __name__ == "__main__":
     app = QApplication([])
