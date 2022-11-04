@@ -122,7 +122,7 @@ class Window(QDialog):
         app_name = widget.text()
         try:
             main_app = Application(backend="uia").start(app_name)
-            processes_ids.append(main_app.process_id)
+            processes_ids.append(main_app.process)
         except:
             print("ERROR")
             print(sys.excepthook)
@@ -133,7 +133,7 @@ class Window(QDialog):
                 print(app_name_a)
                 try:
                     app = Application(backend="uia").start(app_name_a)
-                    processes_ids.append(app.process_id)
+                    processes_ids.append(app.process)
                     print(processes_ids)
                 except:
                     print("ERROR")
@@ -144,7 +144,9 @@ class Window(QDialog):
     def closeApps(self):
         for a in processes_ids:
             app = Application().connect(process=a)
-            app.send_keys('%{F4}')
+            wnd = app.top_window()
+            wnd.send_chars('aaa')
+            #app.window(title=wnd.texts()[0]).send_keystrokes('%{F4}')
 
 
 if __name__ == "__main__":
