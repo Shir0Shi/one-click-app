@@ -10,6 +10,7 @@ from PyQt6.QtCore import Qt, QRect
 from pywinauto.application import Application
 from pywinauto.keyboard import send_keys
 import re
+import time
 sys._excepthook = sys.excepthook
 
 
@@ -140,14 +141,23 @@ class Window(QDialog):
                     print(sys.excepthook)
 
         print(app_name)
-# TODO: closeButton function
+# TODO: popup window timeout
     def closeApps(self):
         for a in processes_ids:
             app = Application().connect(process=a)
-            wnd = app.top_window()
-            wnd.send_chars('aaa')
-            #app.window(title=wnd.texts()[0]).send_keystrokes('%{F4}')
+            #app
 
+            wnd = app.top_window().set_focus().send_keystrokes('%{F4}')
+            print(wnd.texts()[0])
+            #if app.popup_window():
+            #  time.sleep(10)
+        processes_ids.clear()
+        app = Application().connect(title="One click app")
+        app.top_window().set_focus()
+            # window().set_focus()
+            # wnd.send_chars('aaa')
+            #app.window(title=wnd.texts()[0])
+            # notepad.exe
 
 if __name__ == "__main__":
     app = QApplication([])
