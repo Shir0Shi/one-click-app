@@ -141,19 +141,29 @@ class Window(QDialog):
                     print(sys.excepthook)
 
         print(app_name)
-# TODO: popup window timeout
+# TODO: fix bug with detecting saveWindow
     def closeApps(self):
-        for a in processes_ids:
-            app = Application().connect(process=a)
-            #app
+        try:
+            for a in processes_ids:
+                app = Application().connect(process=a)
+                #app
 
-            wnd = app.top_window().set_focus().send_keystrokes('%{F4}')
-            print(wnd.texts()[0])
+                wnd = app.top_window().set_focus().send_keystrokes('%{F4}')
+                if app.Dialog.exists(): # print_control_identifiers() != None:
+                    time.sleep(10)
+            # for x in app.descendants():
+            #     print(x.window_text())
+            #     print(x.class_name())
+            #print(wnd.texts()[0])
             #if app.popup_window():
-            #  time.sleep(10)
-        processes_ids.clear()
-        app = Application().connect(title="One click app")
-        app.top_window().set_focus()
+            #
+            processes_ids.clear()
+            mainApp = Application().connect(title="One click app")
+            mainApp.top_window().set_focus()
+        except:
+            print("ERROR")
+            print(sys.excepthook)
+
             # window().set_focus()
             # wnd.send_chars('aaa')
             #app.window(title=wnd.texts()[0])
