@@ -26,7 +26,7 @@ def my_exception_hook(exctype, value, traceback):
 sys.excepthook = my_exception_hook
 
 textInputWidth = 405
-buttonWidth = 30
+buttonWidth = 25
 
 funButtonWidth = 70
 funButtonHeight = 35
@@ -34,6 +34,7 @@ funButtonHeight = 35
 prog_amount = 19
 
 processes_ids = []
+
 class Window(QDialog):
     count = 0
 
@@ -52,15 +53,25 @@ class Window(QDialog):
 
         mainTextBar = QLineEdit(scrollAreaWidgetContents)
 
-        mainButton = QPushButton(scrollAreaWidgetContents)
+
+        mainButton = QPushButton(scrollAreaWidgetContents) # scrollAreaWidgetContents
         mainTextBar.setObjectName("mainTextBar")
         mainButton.setObjectName("mainButton")
         mainButton.setText("+")
+
+        fileButton = QPushButton(scrollAreaWidgetContents)
+        fileButton.setObjectName("fileButton")
+        fileButton.setText("file")
+        fileButton.setFixedWidth(25)
+        fileButton.clicked.connect(lambda: self._openDirectory(mainTextBar))
+
         mainTextBar.setFixedWidth(textInputWidth)
         mainButton.setFixedWidth(buttonWidth)
-        formLayout.addRow(mainTextBar, mainButton)
+        formLayout.addRow(mainTextBar, fileButton)
         mainButton.clicked.connect(lambda: self._createInputField(formLayout))
 
+        mainButton.show()
+        mainButton.setGeometry(450, 8, 25, 25)
         label = QLabel("Input file paths", self)
         # label.setGeometry(0, 10, 210, 12)
         label.move(0, 0)
@@ -80,15 +91,41 @@ class Window(QDialog):
         saveButton = QPushButton("Save set", self)
         saveButton.setGeometry(680, 430, funButtonWidth, funButtonHeight)
         saveButton.show()
-
         # createMainField(scrollBox)
         scrollBox.setWidget(scrollAreaWidgetContents)
         label.show()
+
         # scrollBox.setLayout(formLayout)
         # scrollBox.show()
 
         # self.setLayout(formLayout)
 
+    #filepath = QFileDialog.getOpenFileName(self, 'Hey! Select a File')
+    #    filepath.show()
+    def _openDirectory(self, line):
+        #dialog = QFileDialog()
+        # try:
+        self.getOpenFilesAndDirs()
+            # foo_dir = QFileDialog.getOpenFileName(
+            #     parent=self,
+            #     caption='Select file',
+            #     directory='C:\\',
+            #     filter='*.exe',)
+            # print(foo_dir)
+        # except:
+        #     print("wtf")
+        #dialog = QFileDialog()
+        #dialog = QFileDialog(self)
+        #dialog.setFileMode(QFileDialog.directoryUrl)
+        #dialog.setSidebarUrls([QUrl.fromLocalFile()])
+        # if dialog.exec() == QDialog.Accepted:
+        #     self._audio_file = dialog.selectedFiles()[0]
+        #folder_path = dialog.getExistingDirectory(None, "Select Folder")
+        #folderpath = QFileDialog.getExistingDirectory(self, 'Select Folder')
+        # fname= QFileDialog.getOpenFileName(self, 'Open file', '', '', options=QFileDialog.DontUseNativeDialog)
+        #filepath = str(dialog.getOpenFileName(self, 'Open file', '', ''))
+        #line.txt(filepath)
+        #filepath.show()
     def _createInputField(self, formLayout):
         if self.count < prog_amount:
             self.count += 1  # newId = next(iter(self.count))
@@ -168,6 +205,48 @@ class Window(QDialog):
             # wnd.send_chars('aaa')
             #app.window(title=wnd.texts()[0])
             # notepad.exe
+
+    def getOpenFilesAndDirs(parent=None, caption='', directory='D:\\',
+                            filter='*.exe', initialFilter='', options=None):
+        #def updateText():
+        #    # update the contents of the line edit widget with the selected files
+        #    selected = []
+        #    for index in view.selectionModel().selectedRows():
+        #        selected.append('"{}"'.format(index.data()))
+        #    lineEdit.setText(' '.join(selected))
+
+        dialog = QFileDialog(parent, windowTitle=caption)
+        dialog.setFileMode(dialog.FileMode.ExistingFiles)
+        if options:
+            dialog.setOptions(options)
+        dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        if directory:
+            dialog.setDirectory(directory)
+        if filter:
+            dialog.setNameFilter(filter)
+            if initialFilter:
+                dialog.selectNameFilter(initialFilter)
+        # by default, if a directory is opened in file listing mode,
+        # QFileDialog.accept() shows the contents of that directory, but we
+        # need to be able to "open" directories as we can do with files, so we
+        # just override accept() with the default QDialog implementation which
+        # will just return exec_()
+        dialog.accept = lambda: QDialog.accept(dialog)
+
+        # there are many item views in a non-native dialog, but the ones displaying
+        # the actual contents are created inside a QStackedWidget; they are a
+        # QTreeView and a QListView, and the tree is only used when the
+        # viewMode is set to QFileDialog.Details, which is not this case
+        stackedWidget = dialog.findChild(QStackedWidget)
+        view = stackedWidget.findChild(QListView)
+        #view.selectionModel().selectionChanged.connect(updateText)
+
+        lineEdit = dialog.findChild(QLineEdit)
+        # clear the line edit contents whenever the current directory changes
+        dialog.directoryEntered.connect(lambda: lineEdit.setText(''))
+
+        dialog.exec()
+        print(dialog.selectedFiles())
 
 if __name__ == "__main__":
     app = QApplication([])
