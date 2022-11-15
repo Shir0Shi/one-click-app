@@ -6,7 +6,7 @@ import itertools
 import sys
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
-from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtCore import Qt, QRect, QPoint
 from pywinauto.application import Application
 from pywinauto.keyboard import send_keys
 import re
@@ -46,24 +46,24 @@ class Window(QDialog):
         scrollBox.setGeometry(5, 40, 480, 425)
         scrollBox.setWidgetResizable(True)
 
-        scrollAreaWidgetContents = QWidget()
-        scrollAreaWidgetContents.setGeometry(QRect(0, 0, 289, 219))
+        self.scrollAreaWidgetContents = QWidget()
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 289, 219))
 
-        formLayout = QFormLayout(scrollAreaWidgetContents)
+        formLayout = QFormLayout(self.scrollAreaWidgetContents)
 
-        mainTextBar = QLineEdit(scrollAreaWidgetContents)
+        mainTextBar = QLineEdit(self.scrollAreaWidgetContents)
 
 
-        mainButton = QPushButton(scrollAreaWidgetContents) # scrollAreaWidgetContents
+        mainButton = QPushButton(self.scrollAreaWidgetContents) # scrollAreaWidgetContents
         mainTextBar.setObjectName("mainTextBar")
         mainButton.setObjectName("mainButton")
         mainButton.setText("+")
 
-        fileButton = QPushButton(scrollAreaWidgetContents)
+        fileButton = QPushButton(self.scrollAreaWidgetContents)
         fileButton.setObjectName("fileButton")
         fileButton.setText("file")
         fileButton.setFixedWidth(25)
-        fileButton.clicked.connect(lambda: self._openDirectory(mainTextBar))
+        fileButton.clicked.connect(lambda: self.getOpenFilesAndDirs(editLine=mainTextBar))
 
         mainTextBar.setFixedWidth(textInputWidth)
         mainButton.setFixedWidth(buttonWidth)
@@ -92,7 +92,7 @@ class Window(QDialog):
         saveButton.setGeometry(680, 430, funButtonWidth, funButtonHeight)
         saveButton.show()
         # createMainField(scrollBox)
-        scrollBox.setWidget(scrollAreaWidgetContents)
+        scrollBox.setWidget(self.scrollAreaWidgetContents)
         label.show()
 
         # scrollBox.setLayout(formLayout)
@@ -130,20 +130,29 @@ class Window(QDialog):
         if self.count < prog_amount:
             self.count += 1  # newId = next(iter(self.count))
             textBar = QLineEdit()
-            button = QPushButton("-")
+            fileButton = QPushButton("file")
+            fileButton.setFixedWidth(25)
+            button = QPushButton(self.scrollAreaWidgetContents)
+            button.setText("-")
+
             textBar.setObjectName("textBar" + str(self.count))  # self.newId
             # textBar.setText(str(self.count))
             textBar.setFixedWidth(textInputWidth)
             button.setFixedWidth(buttonWidth)
-            button.clicked.connect(lambda: self._deleteInputField(textBar, button))
-            formLayout.addRow(textBar, button)
-
-    def _deleteInputField(self, textBar, button):
+            fileButton.clicked.connect(lambda: self.getOpenFilesAndDirs(editLine=textBar))
+            button.clicked.connect(lambda: self._deleteInputField(textBar, button, fileButton))
+            formLayout.addRow(textBar, fileButton)
+            button.show()
+            button.setGeometry(450, 15, 25, 25)
+            print(textBar.rect())
+# TODO: fix - button position
+    def _deleteInputField(self, textBar, button, fileButton):
         if int(re.findall(r'\d+', textBar.objectName())[0]) < self.count:
             widget_a = self.findChild(QLineEdit, "textBar" + str(self.count))
             temp_name = textBar.objectName()
             textBar.deleteLater()
             button.deleteLater()
+            fileButton.deleteLater()
             widget_a.setObjectName(temp_name)
             # widget_a.setText(temp_name)
             self.count -= 1
@@ -207,7 +216,7 @@ class Window(QDialog):
             # notepad.exe
 
     def getOpenFilesAndDirs(parent=None, caption='', directory='D:\\',
-                            filter='*.exe', initialFilter='', options=None):
+                            filter='*.exe', initialFilter='', options=None, editLine=QLineEdit):
         #def updateText():
         #    # update the contents of the line edit widget with the selected files
         #    selected = []
@@ -246,7 +255,8 @@ class Window(QDialog):
         dialog.directoryEntered.connect(lambda: lineEdit.setText(''))
 
         dialog.exec()
-        print(dialog.selectedFiles())
+        if dialog.selectedFiles():
+            editLine.setText(dialog.selectedFiles()[0])
 
 if __name__ == "__main__":
     app = QApplication([])
