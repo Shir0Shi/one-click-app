@@ -89,10 +89,15 @@ class Window(QDialog):
         closeButton.clicked.connect(lambda: self.closeApps())
 
         saveButton = QPushButton("Save set", self)
-        saveButton.setGeometry(680, 430, funButtonWidth, funButtonHeight)
+        saveButton.setGeometry(500, 40, funButtonWidth, funButtonHeight)
         saveButton.show()
+
+        loadButton = QPushButton("load set", self)
+        loadButton.setGeometry(500, 80, funButtonWidth, funButtonHeight)
+        loadButton.show()
         # createMainField(scrollBox)
         scrollBox.setWidget(self.scrollAreaWidgetContents)
+
         label.show()
 
         # scrollBox.setLayout(formLayout)
@@ -143,15 +148,16 @@ class Window(QDialog):
             button.clicked.connect(lambda: self._deleteInputField(textBar, button, fileButton))
             formLayout.addRow(textBar, fileButton)
             button.show()
-            button.setGeometry(450, 15, 25, 25)
-            print(textBar.rect())
+            button.setGeometry(450, (self.count * 30)+7, 25, 25)
+            #print(textBar.rect())
 # TODO: fix - button position
     def _deleteInputField(self, textBar, button, fileButton):
-        if int(re.findall(r'\d+', textBar.objectName())[0]) < self.count:
+        if int(re.findall(r'\d+', textBar.objectName())[0]) <= self.count:
             widget_a = self.findChild(QLineEdit, "textBar" + str(self.count))
             temp_name = textBar.objectName()
             textBar.deleteLater()
             button.deleteLater()
+            print("qwe")
             fileButton.deleteLater()
             widget_a.setObjectName(temp_name)
             # widget_a.setText(temp_name)
