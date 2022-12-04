@@ -84,7 +84,7 @@ class Window(QDialog):
         launchButton.clicked.connect(lambda: self.launchApps())
 
         closeButton = QPushButton("Close all", self)
-        closeButton.setGeometry(590, 430, funButtonWidth, funButtonHeight)
+        closeButton.setGeometry(580, 430, funButtonWidth, funButtonHeight)
         closeButton.show()
         closeButton.clicked.connect(lambda: self.closeApps())
 
@@ -171,28 +171,41 @@ class Window(QDialog):
 
     def launchApps(self):
         widget = self.findChild(QLineEdit, "mainTextBar")
+        if len(processes_ids) < self.count+1:
+            app_name = widget.text()
+            try:
+                main_app = Application(backend="uia").start(app_name)
+                processes_ids.append(main_app.process)
+            except:
+                print("ERROR")
+                print(sys.excepthook)
+            for i in range(1, self.count+1):
+                widget_a = self.findChild(QLineEdit, "textBar" + str(i))
+                if widget_a:
+                    app_name_a = widget_a.text()
+                    print(app_name_a)
+                    try:
+                        app = Application(backend="uia").start(app_name_a)
+                        processes_ids.append(app.process)
+                        print(processes_ids)
+                    except:
+                        print("ERROR")
+                        print(sys.excepthook)
+        else:
+            for i in range(len(processes_ids), self.count + 1):
+                widget_a = self.findChild(QLineEdit, "textBar" + str(i))
+                if widget_a:
+                    app_name_a = widget_a.text()
+                    print(app_name_a)
+                    try:
+                        app = Application(backend="uia").start(app_name_a)
+                        processes_ids.append(app.process)
+                        print(processes_ids)
+                    except:
+                        print("ERROR")
+                        print(sys.excepthook)
 
-        app_name = widget.text()
-        try:
-            main_app = Application(backend="uia").start(app_name)
-            processes_ids.append(main_app.process)
-        except:
-            print("ERROR")
-            print(sys.excepthook)
-        for i in range(1, self.count+1):
-            widget_a = self.findChild(QLineEdit, "textBar" + str(i))
-            if widget_a:
-                app_name_a = widget_a.text()
-                print(app_name_a)
-                try:
-                    app = Application(backend="uia").start(app_name_a)
-                    processes_ids.append(app.process)
-                    print(processes_ids)
-                except:
-                    print("ERROR")
-                    print(sys.excepthook)
 
-        print(app_name)
 # TODO: fix bug with detecting saveWindow
     def closeApps(self):
         try:
