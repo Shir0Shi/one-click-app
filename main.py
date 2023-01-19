@@ -1,7 +1,6 @@
 
 """Dialog-style application."""
 
-
 import itertools
 import sys
 from PyQt6.QtWidgets import *
@@ -100,37 +99,6 @@ class Window(QDialog):
 
         label.show()
 
-        # scrollBox.setLayout(formLayout)
-        # scrollBox.show()
-
-        # self.setLayout(formLayout)
-
-    #filepath = QFileDialog.getOpenFileName(self, 'Hey! Select a File')
-    #    filepath.show()
-    def _openDirectory(self, line):
-        #dialog = QFileDialog()
-        # try:
-        self.getOpenFilesAndDirs()
-            # foo_dir = QFileDialog.getOpenFileName(
-            #     parent=self,
-            #     caption='Select file',
-            #     directory='C:\\',
-            #     filter='*.exe',)
-            # print(foo_dir)
-        # except:
-        #     print("wtf")
-        #dialog = QFileDialog()
-        #dialog = QFileDialog(self)
-        #dialog.setFileMode(QFileDialog.directoryUrl)
-        #dialog.setSidebarUrls([QUrl.fromLocalFile()])
-        # if dialog.exec() == QDialog.Accepted:
-        #     self._audio_file = dialog.selectedFiles()[0]
-        #folder_path = dialog.getExistingDirectory(None, "Select Folder")
-        #folderpath = QFileDialog.getExistingDirectory(self, 'Select Folder')
-        # fname= QFileDialog.getOpenFileName(self, 'Open file', '', '', options=QFileDialog.DontUseNativeDialog)
-        #filepath = str(dialog.getOpenFileName(self, 'Open file', '', ''))
-        #line.txt(filepath)
-        #filepath.show()
     def _createInputField(self, formLayout):
         if self.count < prog_amount:
             self.count += 1  # newId = next(iter(self.count))
@@ -205,23 +173,13 @@ class Window(QDialog):
                         print("ERROR")
                         print(sys.excepthook)
 
-
-# TODO: fix bug with detecting saveWindow
     def closeApps(self):
         try:
             for a in processes_ids:
                 app = Application().connect(process=a)
-                #app
-
                 wnd = app.top_window().set_focus().send_keystrokes('%{F4}')
                 if app.Dialog.exists(): # print_control_identifiers() != None:
                     time.sleep(10)
-            # for x in app.descendants():
-            #     print(x.window_text())
-            #     print(x.class_name())
-            #print(wnd.texts()[0])
-            #if app.popup_window():
-            #
             processes_ids.clear()
             mainApp = Application().connect(title="One click app")
             mainApp.top_window().set_focus()
@@ -229,20 +187,8 @@ class Window(QDialog):
             print("ERROR")
             print(sys.excepthook)
 
-            # window().set_focus()
-            # wnd.send_chars('aaa')
-            #app.window(title=wnd.texts()[0])
-            # notepad.exe
-
     def getOpenFilesAndDirs(parent=None, caption='', directory='D:\\',
                             filter='*.exe', initialFilter='', options=None, editLine=QLineEdit):
-        #def updateText():
-        #    # update the contents of the line edit widget with the selected files
-        #    selected = []
-        #    for index in view.selectionModel().selectedRows():
-        #        selected.append('"{}"'.format(index.data()))
-        #    lineEdit.setText(' '.join(selected))
-
         dialog = QFileDialog(parent, windowTitle=caption)
         dialog.setFileMode(dialog.FileMode.ExistingFiles)
         if options:
@@ -260,7 +206,6 @@ class Window(QDialog):
         # just override accept() with the default QDialog implementation which
         # will just return exec_()
         dialog.accept = lambda: QDialog.accept(dialog)
-
         # there are many item views in a non-native dialog, but the ones displaying
         # the actual contents are created inside a QStackedWidget; they are a
         # QTreeView and a QListView, and the tree is only used when the
@@ -268,11 +213,9 @@ class Window(QDialog):
         stackedWidget = dialog.findChild(QStackedWidget)
         view = stackedWidget.findChild(QListView)
         #view.selectionModel().selectionChanged.connect(updateText)
-
         lineEdit = dialog.findChild(QLineEdit)
         # clear the line edit contents whenever the current directory changes
         dialog.directoryEntered.connect(lambda: lineEdit.setText(''))
-
         dialog.exec()
         if dialog.selectedFiles():
             editLine.setText(dialog.selectedFiles()[0])
