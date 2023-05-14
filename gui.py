@@ -1,24 +1,17 @@
-from PyQt6.QtWidgets import *
-from PyQt6.QtGui import *
-from PyQt6.QtCore import Qt, QRect, QPoint
-from pywinauto.application import Application
-from pywinauto.keyboard import send_keys
-from pywinauto import Desktop, win32functions
-import re
-import time
-import os.path
 import json
+import os.path
 import uuid
-import psutil
-from PyQt6.QtGui import QGuiApplication
-from PyQt6.QtWidgets import QApplication, QWidget
-import math
-import pywinauto
-import win32api
-import win32con
-import win32gui
-import win32process
+
+from PyQt6.QtCore import QRect
+from PyQt6.QtGui import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtWidgets import QWidget
+from pywinauto.application import Application
+
 from notification import NotificationDialog
+from running_app_functions import start_app_processes, close_apps, processes_ids, processes_names
+from set_file_functions import rewrite_set_file, sets_file
+from windows_functions import align_windows
 
 desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
 
@@ -38,13 +31,6 @@ ALIGN_BUTTONS_POS_Y = 300
 
 ALIGN_BUTTON_WIDTH = 90
 ALIGN_BUTTON_HEIGHT = 35
-
-processes_ids = []
-processes_names = []
-
-windows = []
-
-sets_file = "sets.json"
 
 
 class Window(QMainWindow):
@@ -92,12 +78,12 @@ class Window(QMainWindow):
         fileButton.setObjectName("fileButton")
         fileButton.setText("file")
         fileButton.setFixedWidth(25)
-        fileButton.clicked.connect(lambda: self.getOpenFilesAndDirs(editLine=self.mainTextBar))
+        fileButton.clicked.connect(lambda: self.get_open_files_and_dirs(edit_line=self.mainTextBar))
 
         self.mainTextBar.setFixedWidth(TEXT_INPUT_WIDTH)
         mainButton.setFixedWidth(BUTTON_WIDTH)
         self.formLayout.addRow(self.mainTextBar, fileButton)
-        mainButton.clicked.connect(lambda: self._createInputField())
+        mainButton.clicked.connect(lambda: self._create_input_field())
 
         mainButton.show()
         mainButton.setGeometry(450, 8, 25, 25)
@@ -118,38 +104,39 @@ class Window(QMainWindow):
         launchButton = QPushButton("Launch all", self)
         launchButton.setGeometry(500, 430, FUN_BUTTON_WIDTH, FUN_BUTTON_HEIGHT)
         launchButton.show()
-        launchButton.clicked.connect(lambda: self.launchApps())
+        launchButton.clicked.connect(lambda: self.launch_apps())
 
         closeButton = QPushButton("Close all", self)
         closeButton.setGeometry(580, 430, FUN_BUTTON_WIDTH, FUN_BUTTON_HEIGHT)
         closeButton.show()
-        closeButton.clicked.connect(lambda: self.closeApps())
+        closeButton.clicked.connect(lambda: close_apps())
 
         newSetButton = QPushButton("New set", self)
         newSetButton.setGeometry(SET_BUTTONS_POS_X, SET_BUTTONS_POS_Y, FUN_BUTTON_WIDTH, FUN_BUTTON_HEIGHT)
         newSetButton.show()
-        newSetButton.clicked.connect(lambda: self.createNewSet())
+        newSetButton.clicked.connect(lambda: self.create_new_set())
 
         saveButton = QPushButton("Save set", self)
         saveButton.setGeometry(SET_BUTTONS_POS_X + FUN_BUTTON_WIDTH + 15, SET_BUTTONS_POS_Y, FUN_BUTTON_WIDTH,
                                FUN_BUTTON_HEIGHT)
         saveButton.show()
-        saveButton.clicked.connect(lambda: self.saveSet())
+        saveButton.clicked.connect(lambda: self.save_set())
 
         self.deleteButton = QPushButton("Delete set", self)
         self.deleteButton.setGeometry(SET_BUTTONS_POS_X + (FUN_BUTTON_WIDTH + 15) * 2, SET_BUTTONS_POS_Y,
                                       FUN_BUTTON_WIDTH, FUN_BUTTON_HEIGHT)
         self.deleteButton.show()
-        self.deleteButton.clicked.connect(lambda: self.deleteSet())
+        self.deleteButton.clicked.connect(lambda: self.delete_set())
         self.deleteButton.setDisabled(True)
 
         self.alignButton = QPushButton("Align screens", self)
         self.alignButton.setGeometry(ALIGN_BUTTONS_POS_X, ALIGN_BUTTONS_POS_Y, ALIGN_BUTTON_WIDTH, ALIGN_BUTTON_HEIGHT)
         self.alignButton.show()
-        self.alignButton.clicked.connect(lambda: self.align_windows())
+        self.alignButton.clicked.connect(lambda: align_windows())
 
         self.createBatButton = QPushButton("Create .bat", self)
-        self.createBatButton.setGeometry(ALIGN_BUTTONS_POS_X+ALIGN_BUTTON_WIDTH+60, ALIGN_BUTTONS_POS_Y, ALIGN_BUTTON_WIDTH, ALIGN_BUTTON_HEIGHT)
+        self.createBatButton.setGeometry(ALIGN_BUTTONS_POS_X + ALIGN_BUTTON_WIDTH + 60, ALIGN_BUTTONS_POS_Y,
+                                         ALIGN_BUTTON_WIDTH, ALIGN_BUTTON_HEIGHT)
         self.createBatButton.show()
         self.createBatButton.clicked.connect(lambda: self.create_bat())
         self.createBatButton.setDisabled(True)
@@ -174,14 +161,9 @@ class Window(QMainWindow):
         #     except Exception as e:
         #         print(f"Error: {e}")
 
-    def rewriteSetFile(self, set_data=[]):
-        with open(sets_file, "w") as f:
-            json.dump(set_data, f, indent=4)
-
     def load_sets(self):
-
         if not os.path.exists(sets_file):
-            self.rewriteSetFile()
+            rewrite_set_file()
         try:
             with open(sets_file, "r") as f:
                 self.data = json.load(f)
@@ -190,7 +172,7 @@ class Window(QMainWindow):
                     set_name = set_data["name"]
                     set_id = set_data["id"]
                     set_button = QPushButton(set_name, self.scroll_widget)
-                    set_button.clicked.connect(lambda state, id=set_id: self.on_set_button_clicked(id))
+                    set_button.clicked.connect(lambda state, button_id=set_id: self.on_set_button_clicked(button_id))
                     self.scroll_layout.addWidget(set_button)
             else:
                 print("No sets found in sets.json")
@@ -207,103 +189,9 @@ class Window(QMainWindow):
                 self.scroll_layout.removeItem(item)
         self.load_sets()
 
-    def get_windows(self):
-        win_info = []
-        excluded_apps = ['Microsoft Text Input Application', 'Параметры', 'Settings', 'One click app']
-
-        def isRealWindow(hWnd):
-            '''Return True iff given window is a real Windows application window.'''
-            if not win32gui.IsWindowVisible(hWnd):
-                return False
-            if win32gui.GetParent(hWnd) != 0:
-                return False
-            if win32gui.IsIconic(hWnd):
-                return False
-            hasNoOwner = win32gui.GetWindow(hWnd, win32con.GW_OWNER) == 0
-            lExStyle = win32gui.GetWindowLong(hWnd, win32con.GWL_EXSTYLE)
-            if (((lExStyle & win32con.WS_EX_TOOLWINDOW) == 0 and hasNoOwner)
-                    or ((lExStyle & win32con.WS_EX_APPWINDOW != 0) and not hasNoOwner)):
-                window_text = win32gui.GetWindowText(hWnd)
-                if window_text:
-                    return True
-            return False
-
-        def callback(hWnd, windows):
-            if not isRealWindow(hWnd):
-                return
-            rect = win32gui.GetWindowRect(hWnd)
-            window_text = win32gui.GetWindowText(hWnd)
-            if window_text and window_text not in excluded_apps:
-                windows.append(hWnd)  # windows.append((window_text, hWnd, (rect[2] - rect[0], rect[3] - rect[1])))
-                win_info.append((window_text, hWnd, (rect[2] - rect[0], rect[3] - rect[1])))
-
-        windows = []
-        win32gui.EnumWindows(callback, windows)
-        print(win_info)
-        return windows, win_info
-
-    def align_windows(self):
-        try:
-            # получаем список окон
-            windows, win_info = self.get_windows()
-            print(windows)
-            print(win_info)
-            num_windows = len(windows)
-
-            if num_windows == 0:
-                print("No running applications found")
-                return
-
-            # Определяем тип сетки в зависимости от количества окон
-            if num_windows <= 2:
-                grid_size = (1, 2)
-            elif num_windows <= 4:
-                grid_size = (2, 2)
-            elif num_windows <= 6:
-                grid_size = (2, 3)
-            elif num_windows <= 9:
-                grid_size = (3, 3)
-            else:
-                grid_size = (3, 4)
-
-            monitors = win32api.EnumDisplayMonitors()
-            monitors_num = len(monitors)
-            window_width = 0
-            window_height = 0
-            monitor_info = []
-
-            def get_monitor_size(m_width, m_height):
-                w_width = abs(m_width) // grid_size[1]
-                w_height = m_height // grid_size[0]
-                return w_width, w_height
-
-            if monitors_num == 1:
-                monitor = monitors[0]
-                monitor_info = win32api.GetMonitorInfo(monitor[0])
-                _, _, monitor_width, monitor_height = monitor_info["Monitor"]
-                window_width, window_height = get_monitor_size(monitor_width, monitor_height)
-
-            elif monitors_num == 2:
-                monitor = monitors[1]
-                monitor_info = win32api.GetMonitorInfo(monitor[0])
-                monitor_width, _, _, monitor_height = monitor_info["Monitor"]
-                window_width, window_height = get_monitor_size(monitor_width, monitor_height)
-
-            for j, hwnd in enumerate(windows):
-                row = j // grid_size[1]
-                col = j % grid_size[1]
-                x = monitor_info["Monitor"][0] + col * window_width
-                y = monitor_info["Monitor"][1] + row * window_height
-
-                win32gui.MoveWindow(hwnd, x, y, window_width, window_height, True)
-                win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, x, y, window_width+15, window_height+7,
-                                      win32con.SWP_SHOWWINDOW)
-        except Exception as e:
-            print(f"Error: {e}")
-
     def on_set_button_clicked(self, set_id):
         try:
-            self.deleteAllFields()
+            self.delete_all_fields()
             self.deleteButton.setDisabled(False)
             self.createBatButton.setDisabled(False)
             for set_data in self.data:
@@ -313,16 +201,16 @@ class Window(QMainWindow):
                     self.update_input_field(set_data["name"])
                     self.mainTextBar.setText(set_data["fields_to_load"][0])
                     for field in set_data["fields_to_load"][1:]:
-                        self._createInputField(field)
+                        self._create_input_field(field)
                     break
         except Exception as e:
             print(f"Error: {e}")
 
-    def createNewSet(self):
+    def create_new_set(self):
         self.deleteButton.setDisabled(True)
         self.createBatButton.setDisabled(True)
         self.update_input_field("")
-        self.deleteAllFields()
+        self.delete_all_fields()
         self.mainTextBar.setText("")
         self.setIsOpen = False
         self.lastOpenSetId = ""
@@ -331,7 +219,7 @@ class Window(QMainWindow):
     def update_input_field(self, set_name):
         self.setName.setText(set_name)
 
-    def saveSet(self):
+    def save_set(self):
         try:
             set_name = self.setName.text()
             set_id = str(uuid.uuid4())
@@ -348,28 +236,28 @@ class Window(QMainWindow):
                 notification_dialog.show()
                 return
 
-            fields_to_load = self.getFields()
+            fields_to_load = self.get_fields()
             new_set = {
                 "id": set_id,
                 "name": set_name,
                 "fields_to_load": fields_to_load
             }
-            self.updateSetData(new_set)
-            self.rewriteSetFile(self.data)
+            self.update_set_data(new_set)
+            rewrite_set_file(self.data)
 
             self.reload_sets()
 
         except Exception as e:
             print(f"Delete fields Error: {e}")
 
-    def updateSetData(self, new_set):
+    def update_set_data(self, new_set):
         for i, set_ in enumerate(self.data):
             if set_["id"] == new_set["id"]:
                 self.data[i] = new_set
                 return
         self.data.append(new_set)
 
-    def getFields(self):
+    def get_fields(self):
         fields_to_load = []
         fields_to_load.append(self.mainTextBar.text())
         for prog in self.inputFields:
@@ -377,7 +265,7 @@ class Window(QMainWindow):
                 fields_to_load.append(prog.text())
         return fields_to_load
 
-    def deleteSet(self):
+    def delete_set(self):
         self.deleteButton.setDisabled(True)
         self.createBatButton.setDisabled(True)
         if self.setIsOpen and self.lastOpenSetId != "":
@@ -385,14 +273,14 @@ class Window(QMainWindow):
                 if set_["id"] == self.lastOpenSetId:
                     self.data.pop(i)
                     break
-            self.rewriteSetFile(self.data)
+            rewrite_set_file(self.data)
             self.reload_sets()
         print("Delete set")
 
-    def _createInputField(self, textBarText=""):
+    def _create_input_field(self, text_bar_text=""):
         if len(self.inputFields) < PROG_AMOUNT:
 
-            textBar = QLineEdit(textBarText)
+            textBar = QLineEdit(text_bar_text)
             openFileButton = QPushButton("file")
             openFileButton.setFixedWidth(25)
             decreaseButton = QPushButton(self.scrollAreaWidgetContents)
@@ -400,7 +288,7 @@ class Window(QMainWindow):
 
             textBar.setFixedWidth(TEXT_INPUT_WIDTH)
 
-            openFileButton.clicked.connect(lambda: self.getOpenFilesAndDirs(editLine=textBar))
+            openFileButton.clicked.connect(lambda: self.get_open_files_and_dirs(edit_line=textBar))
 
             self.formLayout.addRow(textBar, openFileButton)
 
@@ -413,11 +301,11 @@ class Window(QMainWindow):
             self.fileButtons.append(openFileButton)
             try:
                 index = self.inputFields.index(textBar)
-                decreaseButton.clicked.connect(lambda: self._deleteInputField(index))
+                decreaseButton.clicked.connect(lambda: self._delete_input_field(index))
             except ValueError:
                 print("Some error occur ")
 
-    def _deleteInputField(self, pos):
+    def _delete_input_field(self, pos):
         try:
             if self.inputFields[pos] in processes_names:
                 index = processes_names.index(self.inputFields[pos])
@@ -430,11 +318,11 @@ class Window(QMainWindow):
             self.decreaseFieldButtons.pop(pos)
             self.fileButtons[pos].deleteLater()
             self.fileButtons.pop(pos)
-            self.redrawButtons()
+            self.redraw_buttons()
         except Exception as e:
             print(f"Delete fields Error: {e}")
 
-    def deleteAllFields(self):
+    def delete_all_fields(self):
         for i in range(len(self.inputFields)):
             self.inputFields[i].deleteLater()
             self.decreaseFieldButtons[i].deleteLater()
@@ -443,11 +331,11 @@ class Window(QMainWindow):
         self.decreaseFieldButtons = []
         self.fileButtons = []
 
-    def redrawButtons(self):
+    def redraw_buttons(self):
         for i, button in enumerate(self.decreaseFieldButtons):
             button.setGeometry(450, (i + 1) * 30 + 7, 25, 25)
 
-    def launchApps(self):
+    def launch_apps(self):
         widget_main = self.findChild(QLineEdit, "mainTextBar")
         if len(processes_ids) < len(self.inputFields):
             print(f"{len(processes_ids)} < {len(self.inputFields)}")
@@ -459,62 +347,32 @@ class Window(QMainWindow):
             except Exception as e:
                 print(f"processes_ids.append 1 Error: {e}")
             for widget in self.inputFields:
-                app_name_a = widget.text()
-                print(app_name_a)
-                try:
-                    app = Application(backend="uia").start(app_name_a)
-                    processes_ids.append(app.process)
-                    processes_names.append(widget)
-                    print(processes_ids)
-                except Exception as e:
-                    print(f"processes_ids.append 2 Error: {e}")
+                start_app_processes(widget)
         else:
             print(f"{len(processes_ids)} > or == {len(self.inputFields)}")
             for widget in self.inputFields:
                 if widget not in processes_names:
-                    app_name_a = widget.text()
-                    print(app_name_a)
-                    try:
-                        app = Application(backend="uia").start(app_name_a)
-                        processes_ids.append(app.process)
-                        processes_names.append(widget)
-                        print(processes_ids)
-                    except Exception as e:
-                        print(f"processes_ids.append 3 Error: {e}")
+                    start_app_processes(widget)
 
-    def closeApps(self):
-        try:
-            for a in processes_ids:
-                app = Application().connect(process=a)
-                wnd = app.top_window().set_focus().send_keystrokes('%{F4}')
-                if app.Dialog.exists():  # print_control_identifiers() != None:
-                    time.sleep(10)
-            processes_ids.clear()
-            processes_names.clear()
-            mainApp = Application().connect(title="One click app")
-            mainApp.top_window().set_focus()
-        except Exception as e:
-            print(f"close apps func (173-182) Error: {e}")
-
-    def getOpenFilesAndDirs(parent=None,
-                            caption='',
-                            directory='D:\\',
-                            filter='*.exe',
-                            initialFilter='',
-                            options=None,
-                            editLine=QLineEdit
-                            ):
-        dialog = QFileDialog(parent, windowTitle=caption)
+    def get_open_files_and_dirs(self,
+                                caption='',
+                                directory='D:\\',
+                                file_filter='*.exe',
+                                initial_filter='',
+                                options=None,
+                                edit_line=QLineEdit
+                                ):
+        dialog = QFileDialog(self, windowTitle=caption)
         dialog.setFileMode(dialog.FileMode.ExistingFiles)
         if options:
             dialog.setOptions(options)
         dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
         if directory:
             dialog.setDirectory(directory)
-        if filter:
-            dialog.setNameFilter(filter)
-            if initialFilter:
-                dialog.selectNameFilter(initialFilter)
+        if file_filter:
+            dialog.setNameFilter(file_filter)
+            if initial_filter:
+                dialog.selectNameFilter(initial_filter)
         dialog.accept = lambda: QDialog.accept(dialog)
         stackedWidget = dialog.findChild(QStackedWidget)
         view = stackedWidget.findChild(QListView)
@@ -523,4 +381,4 @@ class Window(QMainWindow):
         dialog.directoryEntered.connect(lambda: lineEdit.setText(''))
         dialog.exec()
         if dialog.selectedFiles():
-            editLine.setText(dialog.selectedFiles()[0])
+            edit_line.setText(dialog.selectedFiles()[0])
