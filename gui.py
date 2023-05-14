@@ -142,7 +142,6 @@ class Window(QMainWindow):
         self.deleteButton.show()
         self.deleteButton.clicked.connect(lambda: self.deleteSet())
         self.deleteButton.setDisabled(True)
-        # createMainField(scrollBox)
 
         self.alignButton = QPushButton("Align screens", self)
         self.alignButton.setGeometry(ALIGN_BUTTONS_POS_X, ALIGN_BUTTONS_POS_Y, ALIGN_BUTTON_WIDTH, ALIGN_BUTTON_HEIGHT)
