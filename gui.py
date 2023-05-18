@@ -1,4 +1,3 @@
-import json
 import os.path
 import uuid
 
@@ -10,7 +9,7 @@ from pywinauto.application import Application
 
 from notification import NotificationDialog
 from running_app_functions import start_app_processes, close_apps, processes_ids, processes_names
-from set_file_functions import rewrite_set_file, sets_file
+from set_file_functions import rewrite_set_file, load_data, update_set_data
 from windows_functions import align_windows
 
 desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
@@ -33,14 +32,17 @@ ALIGN_BUTTON_WIDTH = 90
 ALIGN_BUTTON_HEIGHT = 35
 
 
+
+
 class Window(QMainWindow):
-    data = {}
+
     set_name = ""
     inputFields = []
     decreaseFieldButtons = []
     fileButtons = []
     setIsOpen = False
     lastOpenSetId = ""
+    data = load_data()
 
     def __init__(self):
         super().__init__(parent=None)
@@ -151,7 +153,7 @@ class Window(QMainWindow):
         #     try:
         #         app_list = []
         #
-        #         for i, set_ in enumerate(self.data):
+        #         for i, set_ in enumerate(data):
         #             if set_["id"] == self.lastOpenSetId:
         #                 app_list = set_["fields_to_load"]
         #         filename = os.path.join(desktop_path, self.setName.text())
@@ -162,11 +164,7 @@ class Window(QMainWindow):
         #         print(f"Error: {e}")
 
     def load_sets(self):
-        if not os.path.exists(sets_file):
-            rewrite_set_file()
         try:
-            with open(sets_file, "r") as f:
-                self.data = json.load(f)
             if self.data:
                 for set_data in self.data:
                     set_name = set_data["name"]
@@ -226,7 +224,7 @@ class Window(QMainWindow):
             if self.setIsOpen and self.lastOpenSetId != "":
                 set_id = self.lastOpenSetId
 
-            # for set_data in self.data:
+            # for set_data in data:
             #     if set_data["name"] == set_name:
             #         set_name = set_name + "copy"
 
@@ -242,20 +240,12 @@ class Window(QMainWindow):
                 "name": set_name,
                 "fields_to_load": fields_to_load
             }
-            self.update_set_data(new_set)
+            self.data = update_set_data(new_set, self.data)
             rewrite_set_file(self.data)
-
             self.reload_sets()
 
         except Exception as e:
             print(f"Delete fields Error: {e}")
-
-    def update_set_data(self, new_set):
-        for i, set_ in enumerate(self.data):
-            if set_["id"] == new_set["id"]:
-                self.data[i] = new_set
-                return
-        self.data.append(new_set)
 
     def get_fields(self):
         fields_to_load = []
@@ -287,13 +277,9 @@ class Window(QMainWindow):
             decreaseButton.setText("-")
 
             textBar.setFixedWidth(TEXT_INPUT_WIDTH)
-
             openFileButton.clicked.connect(lambda: self.get_open_files_and_dirs(edit_line=textBar))
-
             self.formLayout.addRow(textBar, openFileButton)
-
             decreaseButton.setGeometry(450, ((len(self.inputFields) + 1) * 30) + 7, 25, 25)
-
             decreaseButton.show()
 
             self.inputFields.append(textBar)
@@ -382,3 +368,5 @@ class Window(QMainWindow):
         dialog.exec()
         if dialog.selectedFiles():
             edit_line.setText(dialog.selectedFiles()[0])
+
+
