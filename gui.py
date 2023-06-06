@@ -12,6 +12,8 @@ from running_app_functions import start_app_processes, close_apps, processes_ids
 from set_file_functions import rewrite_set_file, load_data, update_set_data
 from windows_functions import align_windows
 
+import psutil
+
 desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
 
 TEXT_INPUT_WIDTH = 405
@@ -321,6 +323,10 @@ class Window(QMainWindow):
 
     def launch_apps(self):
         widget_main = self.findChild(QLineEdit, "mainTextBar")
+        indexes = []
+        for a in processes_ids:
+            if not psutil.pid_exists(a):
+                indexes.append(processes_ids.index(a))
         if len(processes_ids) < len(self.inputFields):
             print(f"{len(processes_ids)} < {len(self.inputFields)}")
             app_name = widget_main.text()
@@ -332,6 +338,10 @@ class Window(QMainWindow):
                 print(f"processes_ids.append 1 Error: {e}")
             for widget in self.inputFields:
                 start_app_processes(widget)
+        elif len(indexes) > 0:
+            print(f"processes_ids = {len(processes_ids)} inputFields = {len(self.inputFields)} perhaps {len(indexes)} app was closed")
+            for a in indexes:
+                Application(backend="uia").start(processes_names[a].text())
         else:
             print(f"{len(processes_ids)} > or == {len(self.inputFields)}")
             for widget in self.inputFields:
