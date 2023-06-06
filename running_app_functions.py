@@ -1,6 +1,7 @@
 import time
 
 from pywinauto import Application
+import psutil
 
 
 def start_app_processes(widget):
@@ -16,17 +17,22 @@ def start_app_processes(widget):
 
 def close_apps():
     try:
+
         for a in processes_ids:
-            app = Application().connect(process=a)
-            wnd = app.top_window().set_focus().send_keystrokes('%{F4}')
-            if app.Dialog.exists():  # print_control_identifiers() != None:
-                time.sleep(10)
+            if psutil.pid_exists(a):
+                app = Application().connect(process=a)
+                wnd = app.top_window().set_focus().send_keystrokes('%{F4}')
+                if app.Dialog.exists():  # print_control_identifiers() != None:
+                    time.sleep(10)
+            else:
+                print(f"app with process id {a} was closed")
+
         processes_ids.clear()
         processes_names.clear()
         mainApp = Application().connect(title="One click app")
         mainApp.top_window().set_focus()
     except Exception as e:
-        print(f"close apps func (173-182) Error: {e}")
+        print(f"close apps func Error: {e}")
 
 
 processes_ids = []

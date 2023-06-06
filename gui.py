@@ -32,8 +32,6 @@ ALIGN_BUTTON_WIDTH = 90
 ALIGN_BUTTON_HEIGHT = 35
 
 
-
-
 class Window(QMainWindow):
 
     set_name = ""
